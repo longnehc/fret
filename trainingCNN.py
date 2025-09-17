@@ -110,7 +110,7 @@ def plot_denoised_results(noisy_data, ideal_data, denoised_data, num_samples=5):
     for i in range(num_samples):
         plt.subplot(num_samples, 3, 3 * i + 1)
         plt.plot(noisy_data[i], color='red')
-        plt.title(f"Noisy {i + 1}")
+        plt.title(f"Denoisy {i + 1}")
 
         plt.subplot(num_samples, 3, 3 * i + 2)
         plt.plot(ideal_data[i], color='green')
@@ -118,7 +118,7 @@ def plot_denoised_results(noisy_data, ideal_data, denoised_data, num_samples=5):
 
         plt.subplot(num_samples, 3, 3 * i + 3)
         plt.plot(denoised_data[i], color='blue')
-        plt.title(f"Denoised {i + 1}")
+        plt.title(f"Smoothed {i + 1}")
 
     plt.tight_layout()
     plt.show()
@@ -149,31 +149,34 @@ def segment_mean_smoothing(signal, model="l2", penalty=3):
 from scipy.signal import medfilt
 
 
-def enhanced_platform_smoother(signal, jump_threshold=0.02, min_segment=10):
+def enhanced_platform_smoother(signal, threshold1=0.1, large_jump_threshold=0.5):
     """
     更稳健的 piecewise constant 平滑器。
-    - jump_threshold: 相邻段的均值变化必须超过这个才算跳变
-    - min_segment: 最小平台长度，小于这个的段会合并
+    - threshold1: 相邻段的均值变化必须超过这个才算跳变
+    - large_jump_threshold: 如果某一段的波动范围超过这个阈值，视为短期大幅波动，不进行平滑
     """
-    signal = np.array(signal)
+    signal = np.asarray(signal)
     smoothed = np.zeros_like(signal)
-
-    segments = []
+    n = len(signal)
     start = 0
-    while start < len(signal):
+
+    while start < n:
+        # 找到下一跳变点
         end = start + 1
-        while end < len(signal) and abs(signal[end] - signal[start]) < jump_threshold:
+        while end < n and abs(signal[end] - signal[start]) <= threshold1:
             end += 1
 
-        # 过短的段直接扩展到下一个段
-        if end - start < min_segment and end < len(signal):
-            next_start = end
-            while next_start < len(signal) and abs(signal[next_start] - signal[end]) < jump_threshold:
-                next_start += 1
-            end = next_start
+        segment = signal[start:end]
+        seg_range = segment.max() - segment.min()
 
-        segment_mean = np.mean(signal[start:end])
-        smoothed[start:end] = segment_mean
+        if seg_range > large_jump_threshold:
+            # 短期大幅波动，不平滑，直接复制原始信号
+            smoothed[start:end] = segment
+        else:
+            # 正常平台或小幅波动，使用段均值平滑
+            seg_mean = segment.mean()
+            smoothed[start:end] = seg_mean
+
         start = end
 
     return smoothed
@@ -188,7 +191,7 @@ def enhanced_platform_smoother(signal, jump_threshold=0.02, min_segment=10):
 
 
 def final_smooth(signal):
-    return enhanced_platform_smoother(signal, jump_threshold=0.07, min_segment=15)
+    return enhanced_platform_smoother(signal)
 
 
 # === 主流程 ===
@@ -206,5 +209,5 @@ denoised_smoothed = np.array([final_smooth(seq) for seq in denoised_data])
 
 
 # 绘图展示
-plot_loss_history(losses, epochs=50)
-plot_denoised_results(noisy_data, ideal_data, denoised_smoothed)
+#plot_loss_history(losses, epochs=50)
+plot_denoised_results(denoised_data, ideal_data, denoised_smoothed)
