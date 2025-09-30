@@ -13,7 +13,7 @@ def load_training_data(noisy_data_path, ideal_data_path):
     return noisy_data, ideal_data
 
 
-# 🔁 新的1D卷积自编码器模型
+# 1D卷积自编码器模型
 class DenoisingConvAutoencoder(nn.Module):
     def __init__(self, input_len=500):
         super().__init__()
@@ -39,12 +39,12 @@ class DenoisingConvAutoencoder(nn.Module):
         return x.squeeze(1)  # (batch, 500)
 
 
-# 🧮 Total Variation Loss
+# Total Variation Loss
 def total_variation_loss(x):
     return torch.mean(torch.abs(x[:, 1:] - x[:, :-1]))
 
 
-# 🚀 自定义损失函数（MSE + TV Loss）
+# 自定义损失函数（MSE + TV Loss）
 def loss_fn(pred, target, alpha=1.0, beta=0.01):
     mse = nn.functional.mse_loss(pred, target)
     tv = total_variation_loss(pred)
@@ -151,7 +151,7 @@ from scipy.signal import medfilt
 
 def enhanced_platform_smoother(signal, threshold1=0.1, large_jump_threshold=0.5):
     """
-    更稳健的 piecewise constant 平滑器。
+    piecewise constant 平滑器。
     - threshold1: 相邻段的均值变化必须超过这个才算跳变
     - large_jump_threshold: 如果某一段的波动范围超过这个阈值，视为短期大幅波动，不进行平滑
     """
@@ -211,3 +211,11 @@ denoised_smoothed = np.array([final_smooth(seq) for seq in denoised_data])
 # 绘图展示
 #plot_loss_history(losses, epochs=50)
 plot_denoised_results(denoised_data, ideal_data, denoised_smoothed)
+
+ideal_filename='truth1.npy'
+smooth_filename='smooth1.npy'
+
+print(f"shape {ideal_data.shape}")
+print(f"shape {denoised_smoothed.shape}")
+np.save(ideal_filename, ideal_data)
+np.save(smooth_filename, denoised_smoothed)
