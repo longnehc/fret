@@ -1,0 +1,5 @@
+*.nc
+*.txt
+fert.py
+problem47.py
+simulationHMMtrajectory.py
